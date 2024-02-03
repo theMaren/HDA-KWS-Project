@@ -1,11 +1,12 @@
 import os
 import glob
+import random
 import pandas as pd
 import tensorflow as tf
 from scipy.io import wavfile
 from scipy.signal import resample
 import tensorflow_io as tfio
-from config import NOISE_FOLDER
+#from config import NOISE_FOLDER
 
 def get_file_list(main_directory):
 
@@ -30,6 +31,7 @@ def get_file_list(main_directory):
     df['mapped_label'] = df['label'].apply(lambda x: 'unknown' if x in non_trigger_words else x)
 
     return df
+
 def read_wavfile(file_path):
     file_path = file_path.numpy()  # Convert the tensor to numpy array
     _, data = wavfile.read(file_path)
@@ -54,15 +56,18 @@ def perform_padding(data, data_length=16000):
 
 
 
-def add_noise(data, noise_paths, noise_strength=None):
-    noise_strength = noise_strength or tf.random.uniform([], 0.2, 0.55, dtype=tf.float32)
-    noise_file = tf.random.shuffle(noise_paths)[0]
+def add_noise(data, noise_paths ):
+    #noise_file = tf.random.shuffle(noise_paths)[0]
+    noise_file = random.choice(noise_paths)
+
+    print(noise_file)
+
 
     # Adjust noise strength based on the selected noise file
-    if 'white_noise.wav' in noise_file.numpy().decode('utf-8') or 'pink_noise.wav' in noise_file.numpy().decode('utf-8'):
+    if 'white_noise.wav' in noise_file or 'pink_noise.wav' in noise_file:
         noise_strength = tf.random.uniform([], 0.1, 0.3, dtype=tf.float32)
     else:
-        noise_strength = noise_strength or tf.random.uniform([], 0.2, 0.55, dtype=tf.float32)
+        noise_strength = tf.random.uniform([], 0.2, 0.55, dtype=tf.float32)
 
     noise_data = tf_read_wavfile(noise_file)
     start_index = tf.random.uniform([], 0, tf.shape(noise_data)[0] - tf.shape(data)[0], dtype=tf.int32)
@@ -86,22 +91,34 @@ def get_spectrogram(signal, samplerate, winlen=25, winstep=10, nfft=512, winfunc
 
 def tf_resample_audio(data, original_sample_rate = 16000, target_sample_rate=8000):
     resampled_data = tfio.audio.resample(data, rate_in=original_sample_rate, rate_out=target_sample_rate)
+    resampled_data.set_shape([target_sample_rate])
     print("Resampled shape:", resampled_data.shape)
     return resampled_data
 
-def compute_log_mel_spectrogram(audio, sample_rate, frame_length=1024, frame_step=512, num_mel_bins=40, lower_edge_hertz=80.0, upper_edge_hertz=7600.0):
-    stft = tf.signal.stft(audio, frame_length=frame_length, frame_step=frame_step)
+
+def compute_log_mel_spectrogram(audio, sample_rate, winlen=25, winstep=10, nfilt=40, nfft=512, lowfreq=300,
+                                highfreq=None):
+    # Convert milliseconds to samples
+    frame_length = int(round(sample_rate * winlen / 1000))
+    frame_step = int(round(sample_rate * winstep / 1000))
+
+    # Set highfreq to samplerate / 2 if None
+    if highfreq is None:
+        highfreq = sample_rate / 2
+
+    stft = tf.signal.stft(audio, frame_length=frame_length, frame_step=frame_step, fft_length=nfft)
     spectrogram = tf.abs(stft)
 
     num_spectrogram_bins = stft.shape[-1]
     linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
-        num_mel_bins, num_spectrogram_bins, sample_rate, lower_edge_hertz, upper_edge_hertz)
+        nfilt, num_spectrogram_bins, sample_rate, lowfreq, highfreq)
     mel_spectrogram = tf.tensordot(spectrogram, linear_to_mel_weight_matrix, 1)
     mel_spectrogram.set_shape(spectrogram.shape[:-1].concatenate(linear_to_mel_weight_matrix.shape[-1:]))
 
     log_mel_spectrogram = tf.math.log(mel_spectrogram + 1e-6)
     print("log_mel_spectrogram shape:", log_mel_spectrogram.shape)
     return log_mel_spectrogram
+
 
 def compute_mfccs(log_mel_spectrogram, num_mfccs=13):
     mfccs = tf.signal.mfccs_from_log_mel_spectrograms(log_mel_spectrogram)
@@ -128,8 +145,9 @@ def preprocess_map(file_path,label):
 
 
 
-def preprocess_map_new(file_path,label,noise=False,resample=False,mfcc=False):
+def preprocess_map_new(file_path,label,noise=False,resample=False,logmel=False,mfcc=False):
     sample_rate = 16000
+    NOISE_FOLDER = "/content/drive/MyDrive/Uni/UniPD/HumanDataProject/project_data_split/_background_noise_"
 
     # Precompute noise file paths
     #noise_folder = r"C:\Users\maren\OneDrive\HDA_Project\project_data_split\_background_noise_"
@@ -143,20 +161,25 @@ def preprocess_map_new(file_path,label,noise=False,resample=False,mfcc=False):
     data = perform_padding(data)
     if noise:
         noise_files = glob.glob(os.path.join(NOISE_FOLDER, "*.wav"))
+        print(noise_files)
         precomputed_noise_paths = [os.path.join(NOISE_FOLDER, f) for f in noise_files]
         data = add_noise(data, precomputed_noise_paths)
 
     if resample:
         data = tf_resample_audio(data)
         sample_rate = 8000
+    if logmel or mfcc:
+        feature = compute_log_mel_spectrogram(data, sample_rate)
 
-    if mfcc:
-        data_log_mel = compute_log_mel_spectrogram(data, sample_rate)
-        feature = compute_mfccs(data_log_mel)
+        if mfcc:
+            feature = compute_mfccs(feature)
+        else:
+            feature = feature[..., tf.newaxis]
 
     else:
         feature = get_spectrogram(data, sample_rate)
 
+    print("Final shape:", feature.shape)
     return feature, label
 
 
