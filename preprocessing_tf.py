@@ -6,6 +6,7 @@ import tensorflow as tf
 from scipy.io import wavfile
 from scipy.signal import resample
 import tensorflow_io as tfio
+import warnings
 #from config import NOISE_FOLDER
 
 def get_file_list(main_directory):
@@ -32,6 +33,7 @@ def get_file_list(main_directory):
 
     return df
 
+
 def read_wavfile(file_path):
     file_path = file_path.numpy()  # Convert the tensor to numpy array
     _, data = wavfile.read(file_path)
@@ -41,7 +43,6 @@ def tf_read_wavfile(file_path):
     # Wrap read_wavfile using tf.py_function
     [data] = tf.py_function(read_wavfile, [file_path], [tf.float32])
     data.set_shape([None])
-    print("Data shape:", data.shape)
     return data
 
 def perform_padding(data, data_length=16000):
@@ -67,7 +68,7 @@ def add_noise(data, noise_paths ):
     if 'white_noise.wav' in noise_file or 'pink_noise.wav' in noise_file:
         noise_strength = tf.random.uniform([], 0.1, 0.3, dtype=tf.float32)
     else:
-        noise_strength = tf.random.uniform([], 0.2, 0.55, dtype=tf.float32)
+        noise_strength = tf.random.uniform([], 0.2, 0.5, dtype=tf.float32)
 
     noise_data = tf_read_wavfile(noise_file)
     start_index = tf.random.uniform([], 0, tf.shape(noise_data)[0] - tf.shape(data)[0], dtype=tf.int32)
@@ -133,7 +134,7 @@ def preprocess_map(file_path,label):
     # Precompute noise file paths
     noise_folder = r"C:\Users\maren\OneDrive\HDA_Project\project_data_split\_background_noise_"
     noise_files = ["doing_the_dishes.wav", "dude_miaowing.wav", "exercise_bike.wav",
-                   "pink_noise.wav", "running_tap.wav", "white_noise.wav"]
+                   "pink_noise.wav", "white_noise.wav"]  #"running_tap.wav"
     precomputed_noise_paths = [os.path.join(noise_folder, f) for f in noise_files]
 
     data = tf_read_wavfile(file_path)
@@ -144,43 +145,46 @@ def preprocess_map(file_path,label):
     return feature, label
 
 
-
 def preprocess_map_new(file_path,label,noise=False,resample=False,logmel=False,mfcc=False):
-    sample_rate = 16000
-    NOISE_FOLDER = "/content/drive/MyDrive/Uni/UniPD/HumanDataProject/project_data_split/_background_noise_"
+    try:
+        sample_rate = 16000
+        NOISE_FOLDER = "/content/data/project_data_split/_background_noise_"
 
-    # Precompute noise file paths
-    #noise_folder = r"C:\Users\maren\OneDrive\HDA_Project\project_data_split\_background_noise_"
-    #noise_files = ["doing_the_dishes.wav", "dude_miaowing.wav", "exercise_bike.wav",
-    #               "pink_noise.wav", "running_tap.wav", "white_noise.wav"]
+        # Assuming tf_read_wavfile is a function that reads a WAV file and returns a tensor.
+        # Make sure this function is robust or has its own error handling.
+        data = tf_read_wavfile(file_path)
+        data = perform_padding(data)
 
+        if noise:
+            noise_files = glob.glob(os.path.join(NOISE_FOLDER, "*.wav"))
+            precomputed_noise_paths = [os.path.join(NOISE_FOLDER, f) for f in noise_files]
+            data = add_noise(data, precomputed_noise_paths)
 
-    #precomputed_noise_paths = [os.path.join(noise_folder, f) for f in noise_files]
+        if resample:
+            # Assuming tf_resample_audio is a function that resamples the audio data.
+            data = tf_resample_audio(data)
+            sample_rate = 8000
 
-    data = tf_read_wavfile(file_path)
-    data = perform_padding(data)
-    if noise:
-        noise_files = glob.glob(os.path.join(NOISE_FOLDER, "*.wav"))
-        print(noise_files)
-        precomputed_noise_paths = [os.path.join(NOISE_FOLDER, f) for f in noise_files]
-        data = add_noise(data, precomputed_noise_paths)
+        if logmel or mfcc:
+            # Assuming compute_log_mel_spectrogram and compute_mfccs are functions that compute
+            # log Mel spectrogram and MFCCs respectively.
+            feature = compute_log_mel_spectrogram(data, sample_rate)
 
-    if resample:
-        data = tf_resample_audio(data)
-        sample_rate = 8000
-    if logmel or mfcc:
-        feature = compute_log_mel_spectrogram(data, sample_rate)
-
-        if mfcc:
-            feature = compute_mfccs(feature)
+            if mfcc:
+                feature = compute_mfccs(feature)
+            else:
+                feature = feature[..., tf.newaxis]
         else:
-            feature = feature[..., tf.newaxis]
+            # Assuming get_spectrogram is a function that computes a basic spectrogram.
+            feature = get_spectrogram(data, sample_rate)
 
-    else:
-        feature = get_spectrogram(data, sample_rate)
-
-    print("Final shape:", feature.shape)
-    return feature, label
+        return feature, label
+    
+    except Exception as e:
+        print(f"Error processing file {file_path}: {e}")
+        placeholder_feature_shape = (128, 128, 1)  # Example placeholder shape, adjust as needed.
+        placeholder_feature = tf.zeros(placeholder_feature_shape)
+        return placeholder_feature, label
 
 
 
