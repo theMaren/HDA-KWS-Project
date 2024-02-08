@@ -128,30 +128,11 @@ def compute_mfccs(log_mel_spectrogram, num_mfccs=13):
     return mfccs
 
 
-def preprocess_map(file_path,label):
-    sample_rate = 16000
-
-    # Precompute noise file paths
-    noise_folder = r"C:\Users\maren\OneDrive\HDA_Project\project_data_split\_background_noise_"
-    noise_files = ["doing_the_dishes.wav", "dude_miaowing.wav", "exercise_bike.wav",
-                   "pink_noise.wav", "white_noise.wav"]  #"running_tap.wav"
-    precomputed_noise_paths = [os.path.join(noise_folder, f) for f in noise_files]
-
-    data = tf_read_wavfile(file_path)
-    data_padded = perform_padding(data)
-    data_noisy = add_noise(data_padded, precomputed_noise_paths)
-    feature = get_spectrogram(data_noisy, sample_rate)
-
-    return feature, label
-
-
 def preprocess_map_new(file_path,label,noise=False,resample=False,logmel=False,mfcc=False):
     try:
         sample_rate = 16000
         NOISE_FOLDER = "/content/data/project_data_split/_background_noise_"
 
-        # Assuming tf_read_wavfile is a function that reads a WAV file and returns a tensor.
-        # Make sure this function is robust or has its own error handling.
         data = tf_read_wavfile(file_path)
         data = perform_padding(data)
 
@@ -161,13 +142,10 @@ def preprocess_map_new(file_path,label,noise=False,resample=False,logmel=False,m
             data = add_noise(data, precomputed_noise_paths)
 
         if resample:
-            # Assuming tf_resample_audio is a function that resamples the audio data.
             data = tf_resample_audio(data)
             sample_rate = 8000
 
         if logmel or mfcc:
-            # Assuming compute_log_mel_spectrogram and compute_mfccs are functions that compute
-            # log Mel spectrogram and MFCCs respectively.
             feature = compute_log_mel_spectrogram(data, sample_rate)
 
             if mfcc:
@@ -175,14 +153,13 @@ def preprocess_map_new(file_path,label,noise=False,resample=False,logmel=False,m
             else:
                 feature = feature[..., tf.newaxis]
         else:
-            # Assuming get_spectrogram is a function that computes a basic spectrogram.
             feature = get_spectrogram(data, sample_rate)
 
         return feature, label
     
     except Exception as e:
         print(f"Error processing file {file_path}: {e}")
-        placeholder_feature_shape = (128, 128, 1)  # Example placeholder shape, adjust as needed.
+        placeholder_feature_shape = (128, 128, 1) 
         placeholder_feature = tf.zeros(placeholder_feature_shape)
         return placeholder_feature, label
 

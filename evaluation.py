@@ -7,6 +7,15 @@ import numpy as np
 import seaborn as sns
 import time
 import subprocess
+import psutil
+
+
+
+def get_system_ram_usage():
+    ram_info = psutil.virtual_memory()
+    used_ram = ram_info.used / (1024 ** 3)# Convert bytes to GB
+
+    return used_ram
 
 
 def log_gpu_usage(log_file_path, stop_event, interval):
