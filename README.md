@@ -14,7 +14,10 @@ This notebook demonstrates the application of a compact conformer model to our d
 
 ## Python scripts
 
-### preprocessing_tf and preprocessing
+### train_test_val_split.py
+The script divides the dataset into train, validation, and test sets according to the split suggested by the dataset's creator. For each set, a separate folder is created. Within each folder, the structure of the original dataset is maintained, with one subfolder for each keyword.
+
+### preprocessing_tf.py and preprocessing.py
 Both scripts contain identical functions used for preprocessing. The key difference lies in the data format: preprocessing.py processes data as numpy arrays, while preprocessing_tf.py handles data as tensors. The approach used in preprocessing.py is intended for exploratory data analysis and demonstrating the preprocessing pipeline. Conversely, preprocessing_tf.py is employed during model development since it already operates with tensors, ensuring the data is in the appropriate format for training models.
 
 ### conformer.py
@@ -22,3 +25,6 @@ The script includes the classes for constructing our conformer model and perform
 
 ### evaluation.py
 The script includes methods for evaluating models based on performance, time, and resource consumption.
+
+### demo.py
+Running this script initiates the demo. The demo is designed so that a model and an audio input device must be selected. Afterwards, the user can speak a keyword into the microphone, and the prediction from the selected model will be returned.
