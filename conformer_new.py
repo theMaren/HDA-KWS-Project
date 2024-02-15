@@ -56,7 +56,6 @@ class ConvolutionalModule1D(tf.keras.layers.Layer):
         self.pointwise_conv1 = tf.keras.layers.Conv1D(filters=2 * filters, kernel_size=kernel_size, padding='same')
 
         # Depthwise convolution applies separately to each feature map
-        # TensorFlow doesn't have DepthwiseConv1D, using SeparableConv1D as an alternative
         self.depthwise_conv = tf.keras.layers.SeparableConv1D(filters=2 * filters, kernel_size=kernel_size,
                                                               padding='same', depth_multiplier=1)
 
@@ -140,6 +139,8 @@ def build_model(input_shape, num_labels, d_model, num_heads, kernel_size, dropou
     model = tf.keras.Model(inputs=inputs, outputs=outputs)
     return model
 
+
+#build a hypermodel of a conformer model to be able to perform hyperparameter tuning
 class ConformerHyperModel(HyperModel):
     def __init__(self, input_shape, num_labels):
         self.input_shape = input_shape
@@ -152,13 +153,12 @@ class ConformerHyperModel(HyperModel):
 
         # Hyperparameters
         d_model = hp.Int('d_model', min_value=128, max_value=256, step=32)
-        #filters = hp.Int('filters', min_value=32, max_value=192, step=32)
         num_heads = hp.Int('num_heads', min_value=2, max_value=8, step=2)
         kernel_size = hp.Int('kernel_size', min_value=3, max_value=8, step=1)
         dropout_rate = hp.Float('dropout_rate', min_value=0.1, max_value=0.5, step=0.1)
-        #lstm_units = hp.Int('lstm_units', min_value=32, max_value=384, step=64)
         num_blocks = hp.Int('num_blocks', min_value=1, max_value=2, step=1)  # Define num_blocks hyperparameter
 
+        #layeer before thee conformer block
         x = tf.keras.layers.Conv2D(filters=d_model, kernel_size=(4, 4), strides=(1, 1), activation='relu', padding='same')(inputs)
         x = tf.keras.layers.BatchNormalization()(x)
         x = tf.keras.layers.Reshape((-1, x.shape[-2] * x.shape[-1]))(x)
@@ -169,11 +169,12 @@ class ConformerHyperModel(HyperModel):
         for _ in range(num_blocks):
             x = ConformerBlock(d_model, num_heads, kernel_size, dropout_rate)(x)
 
+        #pooling and softmax for multilabel classification
         x = tf.keras.layers.GlobalAveragePooling1D()(x)
         outputs = tf.keras.layers.Dense(self.num_labels, activation='softmax')(x)
 
+        #create and compile model
         model = tf.keras.Model(inputs=inputs, outputs=outputs)
-
         model.compile(optimizer=Adam(learning_rate=1e-4, beta_1=0.9, beta_2=0.98, epsilon=1e-9),
                       loss='sparse_categorical_crossentropy',
                       metrics=['sparse_categorical_accuracy'])
