@@ -1,9 +1,15 @@
 import os
-import preprocessing_tf
+import warnings
+import time
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress TensorFlow C++ level warnings
 import numpy as np
-import sounddevice as sd
 import tensorflow as tf
-from tensorflow.keras.models import load_model
+from scipy.stats import mode
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)  # Suppress TensorFlow Python level warnings
+warnings.filterwarnings('ignore', category=DeprecationWarning, module='tensorflow')
+warnings.filterwarnings('ignore')
+import sounddevice as sd
+import preprocessing_tf
 
 def select_audio_device():
     """Lists available audio devices and prompts the user to select one."""
@@ -16,7 +22,6 @@ def select_audio_device():
 
 def record_audio(duration=1.0, samplerate=16000, device=None):
     """Records audio for a fixed duration using SoundDevice."""
-    print("\nPlease speak now...")
     recording = sd.rec(int(duration * samplerate), samplerate=samplerate, channels=1, dtype='int16', device=device)
     sd.wait()
     return recording.flatten()
@@ -48,46 +53,71 @@ def recreate_string_lookup():
     label_lookup = tf.keras.layers.StringLookup(num_oov_indices=0)
     label_lookup.adapt(labels)
 
-    print("StringLookup Vocabulary (Label: Index):")
-    for index, label in enumerate(label_lookup.get_vocabulary()):
-        print(f"{label}: {index}")
-
     return label_lookup
 
 def main():
-    """Main function to run the audio classification demo."""
-
-    #recreate string lookup for class decoding
+    # Model selection
     label_lookup = recreate_string_lookup()
-    #load the model
-    model_path = input("Enter the path of the model (.keras or .h5 file) you want to demonstrate: ")
-    model = load_model(model_path)
+    vocab = label_lookup.get_vocabulary()
 
-    #selection of audio device
+    model_path = input("Enter the path of the model you want to load (or enter 'e' to load the ensemble model): ")
+
+    if model_path == 'e':
+        model1 = tf.keras.models.load_model(r"G:\Meine Ablage\Uni\UniPD\HumanDataProject\Models\ensembel_model1")
+        model2 = tf.keras.models.load_model(r"G:\Meine Ablage\Uni\UniPD\HumanDataProject\Models\ensembel_model2")
+        model3 = tf.keras.models.load_model(r"G:\Meine Ablage\Uni\UniPD\HumanDataProject\Models\ensembel_model3")
+    else:
+        model = tf.keras.models.load_model(model_path)
+
+    # Select input audio device
     device_index = select_audio_device()
+
+    # Instructions to end the demo
     print("Speak into the selected device. Press 'q' and enter to quit the demo.")
 
     try:
         while True:
-            #record and process audio
+            # Record audio
+            print("\nPlease speak now...")
+            time.sleep(0.3)
             audio = record_audio(device=device_index)
-            log_mel_spec = compute_log_mel_spectrogram(audio, 16000)
+            log_mel_spec = compute_log_mel_spectrogram(audio, 16000)  # Ensure sample rate matches recording
             mfcc_features = compute_mfccs(log_mel_spec)
-            mfcc_features = np.expand_dims(mfcc_features, axis=0)
+            mfcc_features = np.expand_dims(mfcc_features, axis=0)  # Model expects batch dimension
 
-            #predict audio with the chosen model
-            prediction = model.predict(mfcc_features)
-            predicted_index = np.argmax(prediction, axis=1)[0]
-            predicted_class = label_lookup.get_vocabulary()[predicted_index]
+
+            # Predict and print result
+            if model_path == 'e':
+                predictions_model1 = model1.predict(mfcc_features)
+                predictions_model2 = model2.predict(mfcc_features)
+                predictions_model3 = model3.predict(mfcc_features)
+                label_model1 = np.argmax(predictions_model1, axis=1)
+                label_model2 = np.argmax(predictions_model2, axis=1)
+                label_model3 = np.argmax(predictions_model3, axis=1)
+                stacked_predictions = np.stack([label_model1, label_model2, label_model3], axis=1)
+                print(stacked_predictions)
+                majority_vote_label = mode(stacked_predictions, axis=1)[0].flatten()
+                print(majority_vote_label.item())
+                predicted_class = vocab[majority_vote_label.item()]
+
+
+            else:
+                prediction = model.predict(mfcc_features)
+                predicted_index = np.argmax(prediction, axis=1)[0] # Get the index of the max probability
+                #vocab = label_lookup.get_vocabulary()
+                predicted_class = vocab[predicted_index]
 
             print(f"Predicted class: {predicted_class}")
 
+
+            # Check if user wants to end the demo
             if input("Press 'q' and enter to quit, or just enter to continue: ").lower() == 'q':
                 break
+
     except KeyboardInterrupt:
-        print("Demo ended by user.")
-    finally:
-        print("Demo")
+        pass
+
+    print("Demo ended.")
 
 
 if __name__ == "__main__":
