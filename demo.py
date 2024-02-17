@@ -55,6 +55,16 @@ def recreate_string_lookup():
 
     return label_lookup
 
+def decide_final_class(labels, confidences):
+    """determine final prediction of ensemble,first majority vote when there is no majority confidence based"""
+    unique, counts = np.unique(labels, return_counts=True)
+    if np.any(counts > 1):  # A majority vote exists
+        majority_vote_label = mode(labels, axis=1)[0].flatten()[0]
+        return majority_vote_label
+    else:  # No majority, pick the class with the highest confidence
+        max_confidence_index = np.argmax(confidences)
+        return labels.flatten()[max_confidence_index]
+
 def main():
     # Model selection
     label_lookup = recreate_string_lookup()
@@ -88,23 +98,41 @@ def main():
 
             # Predict and print result
             if model_path == 'e':
+                #load the ensemble models
                 predictions_model1 = model1.predict(mfcc_features)
                 predictions_model2 = model2.predict(mfcc_features)
                 predictions_model3 = model3.predict(mfcc_features)
+
+                #get confidence of predicted classes
+                max_confidence_model1 = np.max(predictions_model1, axis=1)
+                max_confidence_model2 = np.max(predictions_model2, axis=1)
+                max_confidence_model3 = np.max(predictions_model3, axis=1)
+
+                #get label (integer label) of predicted classes
                 label_model1 = np.argmax(predictions_model1, axis=1)
                 label_model2 = np.argmax(predictions_model2, axis=1)
                 label_model3 = np.argmax(predictions_model3, axis=1)
-                stacked_predictions = np.stack([label_model1, label_model2, label_model3], axis=1)
-                print(stacked_predictions)
-                majority_vote_label = mode(stacked_predictions, axis=1)[0].flatten()
-                print(majority_vote_label.item())
-                predicted_class = vocab[majority_vote_label.item()]
+
+                # Stack the labels and the confidences
+                stacked_labels = np.stack([label_model1, label_model2, label_model3], axis=1)
+                stacked_confidences = np.stack([max_confidence_model1, max_confidence_model2, max_confidence_model3],
+                                               axis=1)
+
+                # Determine the final class
+                final_class_index = decide_final_class(stacked_labels, stacked_confidences)
+                # get string label of predicted class
+                predicted_class = vocab[final_class_index]
+
+                #print(stacked_labels)
+                #print(stacked_confidences)
+                #print(final_class_index)
 
 
             else:
                 prediction = model.predict(mfcc_features)
                 predicted_index = np.argmax(prediction, axis=1)[0] # Get the index of the max probability
-                #vocab = label_lookup.get_vocabulary()
+
+                # get string label of predicted class
                 predicted_class = vocab[predicted_index]
 
             print(f"Predicted class: {predicted_class}")
