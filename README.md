@@ -1,6 +1,15 @@
 # Human data analytics: Key Word Spotting
 This repository showcases our project for the Human Data Analytics course at the University of Padova, academic year 2023/24. Focused on keyword spotting, a core task in speech recognition used for example in voice assistants like Amazon Alexa. We used the [Google Speech Commands dataset](https://www.tensorflow.org/datasets/catalog/speech_commands) for our research. We explored various audio preprocessing techniques and neural network architectures, evaluating their performance and ressource consumption.
 
+## Remarks
+Our code was executed on Google Colab, utilizing the T4 GPU resource available on the platform. Therefore, when running the code in a different environment, runtime and memory consumption may vary. Additionally, file path settings should be adjusted to fit the structure of the user's environment. We attempted to ensure reproducibility of our results by setting random seeds as follows:
+
+- random.seed(42)
+- np.random.seed(42)
+- tf.random.set_seed(42)
+
+However, despite these efforts, we observed variations in the results with each execution of our code and during model training, therefore we discarded the approach. Consequently, it should be anticipated that different outcomes may be obtained when running the code.
+
 ## Notebooks
 
 ### complete_preprocessing.ipynb
