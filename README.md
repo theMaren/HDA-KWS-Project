@@ -21,7 +21,7 @@ This notebook outlines our baseline model, against which our developed models ar
 ### Conformer_model.ipynb
 This notebook demonstrates the application of a compact conformer model to our dataset. The conformer model adheres to the architecture outlined in [Gulati20].
 
-### Conformer ensemble model.ipynb
+### Conformer_ensemble_model.ipynb
 This notebook attempts to enhance the Conformer model by constructing an ensemble of three distinct, smaller Conformer models
 
 ## Python scripts
