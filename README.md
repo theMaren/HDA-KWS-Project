@@ -18,7 +18,7 @@ This notebook presents an exploratory analysis of the dataset and details our pr
 ### Baseline_model.ipynb
 This notebook outlines our baseline model, against which our developed models are benchmarked. The model design follows guidelines from the [TensorFlow audio recognition tutorial](https://www.tensorflow.org/tutorials/audio/simple_audio).
 
-## CNN.ipynb
+### CNN.ipynb
 This notebook demonstrate the usage of a cnn model for the key word spotting. 
 
 ### Conformer_model.ipynb
