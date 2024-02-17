@@ -13,9 +13,9 @@ import preprocessing_tf
 import matplotlib.pyplot as plt
 
 #put the pathes to the ensemble model here to be able to load it with shortcut "e"
-MODEL1_PATH = r"G:\Meine Ablage\Uni\UniPD\HumanDataProject\Models\ensembel_model1"
-MODEL2_PATH = r"G:\Meine Ablage\Uni\UniPD\HumanDataProject\Models\ensembel_model2"
-MODEL3_PATH = r"G:\Meine Ablage\Uni\UniPD\HumanDataProject\Models\ensembel_model3"
+MODEL1_PATH = ""
+MODEL2_PATH = ""
+MODEL3_PATH = ""
 
 
 #used for control purpose to check if microphone properly records audio
