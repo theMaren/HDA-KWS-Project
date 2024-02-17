@@ -40,3 +40,6 @@ The script includes methods for evaluating models based on performance, time, an
 
 ### demo.py
 Running this script initiates the demo. The demo is designed so that a model and an audio input device must be selected. Afterwards, the user can speak a keyword into the microphone, and the prediction from the selected model will be returned.
+
+## Models
+The folder contains all of our trained models, which have been saved in TensorFlow format following the completion of training.
