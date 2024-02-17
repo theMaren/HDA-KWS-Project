@@ -1,4 +1,8 @@
-DATASET_PATH = r'C:\Users\maren\OneDrive\HDA_Project\project_data'
-DATASET_SPLIT_PATH = r'C:\Users\maren\OneDrive\HDA_Project\project_data_split'
-PREPROCESSING_PATH = r'C:\Users\maren\PycharmProjects\HDA_KW'
-TRAIN_TEST_SPLIT_PATH = r'C:\Users\maren\PycharmProjects\HDA_KW\train_test_val_split.py'
+#Path wer the dataset can be found
+DATASET_PATH = ''
+#path where the dataset split in train test and validation can be found
+DATASET_SPLIT_PATH = ''
+#path were the preprocessing and other scripts can be found
+PREPROCESSING_PATH = ''
+#path were the script for splitting data to train, validation and test can be found
+TRAIN_TEST_SPLIT_PATH = ''
