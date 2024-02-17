@@ -10,6 +10,22 @@ warnings.filterwarnings('ignore', category=DeprecationWarning, module='tensorflo
 warnings.filterwarnings('ignore')
 import sounddevice as sd
 import preprocessing_tf
+import matplotlib.pyplot as plt
+
+#put the pathes to the ensemble model here to be able to load it with shortcut "e"
+MODEL1_PATH = r"G:\Meine Ablage\Uni\UniPD\HumanDataProject\Models\ensembel_model1"
+MODEL2_PATH = r"G:\Meine Ablage\Uni\UniPD\HumanDataProject\Models\ensembel_model2"
+MODEL3_PATH = r"G:\Meine Ablage\Uni\UniPD\HumanDataProject\Models\ensembel_model3"
+
+
+#used for control purpose to check if microphone properly records audio
+def plot_audio_waveform(audio, samplerate=16000):
+    """Plots the waveform of the recorded audio."""
+    plt.figure(figsize=(10, 4))  # Set the figure size
+    plt.plot(audio, color='darkred')
+    plt.title('Recorded Audio Waveform')  # Set the title of the plot
+    plt.show()  # Display the plot
+
 
 def select_audio_device():
     """Lists available audio devices and prompts the user to select one."""
@@ -73,9 +89,9 @@ def main():
     model_path = input("Enter the path of the model you want to load (or enter 'e' to load the ensemble model): ")
 
     if model_path == 'e':
-        model1 = tf.keras.models.load_model(r"G:\Meine Ablage\Uni\UniPD\HumanDataProject\Models\ensembel_model1")
-        model2 = tf.keras.models.load_model(r"G:\Meine Ablage\Uni\UniPD\HumanDataProject\Models\ensembel_model2")
-        model3 = tf.keras.models.load_model(r"G:\Meine Ablage\Uni\UniPD\HumanDataProject\Models\ensembel_model3")
+        model1 = tf.keras.models.load_model(MODEL1_PATH)
+        model2 = tf.keras.models.load_model(MODEL2_PATH)
+        model3 = tf.keras.models.load_model(MODEL3_PATH)
     else:
         model = tf.keras.models.load_model(model_path)
 
@@ -89,7 +105,7 @@ def main():
         while True:
             # Record audio
             print("\nPlease speak now...")
-            time.sleep(0.3)
+            time.sleep(0.1)
             audio = record_audio(device=device_index)
             log_mel_spec = compute_log_mel_spectrogram(audio, 16000)  # Ensure sample rate matches recording
             mfcc_features = compute_mfccs(log_mel_spec)
@@ -130,12 +146,14 @@ def main():
 
             else:
                 prediction = model.predict(mfcc_features)
-                predicted_index = np.argmax(prediction, axis=1)[0] # Get the index of the max probability
+                # Get the index of the max probability
+                predicted_index = np.argmax(prediction, axis=1)[0]
 
                 # get string label of predicted class
                 predicted_class = vocab[predicted_index]
 
             print(f"Predicted class: {predicted_class}")
+            #plot_audio_waveform(audio, samplerate=16000)
 
 
             # Check if user wants to end the demo
