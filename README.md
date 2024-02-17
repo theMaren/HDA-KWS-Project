@@ -19,7 +19,7 @@ This notebook presents an exploratory analysis of the dataset and details our pr
 This notebook outlines our baseline model, against which our developed models are benchmarked. The model design follows guidelines from the [TensorFlow audio recognition tutorial](https://www.tensorflow.org/tutorials/audio/simple_audio).
 
 ### Conformer_model.ipynb
-This notebook demonstrates the application of a compact conformer model to our dataset. The conformer model adheres to the architecture outlined in [Gulati20].
+This notebook demonstrates the application of a compact conformer model to our dataset. The conformer model adheres to the architecture outlined in the literature. 
 
 ### Conformer_ensemble_model.ipynb
 This notebook attempts to enhance the Conformer model by constructing an ensemble of three distinct, smaller Conformer models
